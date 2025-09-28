@@ -52,6 +52,12 @@ jobs:
       # Step 6: Configure kubectl and deploy to EKS
       - name: Deploy to EKS
         run: |
-          aws eks update-kubeconfig --region ${{ env.AWS_REGION }} --name ${{ env.EKS_CLUSTER_NAME }}
+          # Update kubeconfig using GitHub OIDC role
+          aws eks update-kubeconfig \
+            --region ${{ env.AWS_REGION }} \
+            --name ${{ env.EKS_CLUSTER_NAME }} \
+            --role-arn arn:aws:iam::624480629504:role/GitHubActionsRole
+
+          # Update deployment images with SHA tag
           kubectl set image deployment/appointment appointment=${{ env.APPOINTMENT_IMAGE_URI }}:${{ github.sha }} -n default
           kubectl set image deployment/patient patient=${{ env.PATIENT_IMAGE_URI }}:${{ github.sha }} -n default
