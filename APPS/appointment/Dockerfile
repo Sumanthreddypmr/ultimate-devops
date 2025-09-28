@@ -1,28 +1,19 @@
-# ---- Base Image ----
-FROM node:18-alpine AS base
+FROM node:18-slim
 
-# Set working directory
+# Create app directory
 WORKDIR /usr/src/app
 
-# Copy package.json and package-lock.json (if exists)
+# Copy package.json and package-lock.json (if available)
 COPY package*.json ./
 
-# Install dependencies (production only)
-RUN npm install --only=production
+# Install dependencies
+RUN npm install
 
-# Copy application code
+# Copy app source code
 COPY . .
 
-# ---- Runtime Image ----
-FROM node:18-alpine AS runtime
-
-WORKDIR /usr/src/app
-
-# Copy only the necessary files from base
-COPY --from=base /usr/src/app /usr/src/app
-
-# Expose port
+# Expose the port
 EXPOSE 3001
 
 # Start the app
-CMD ["npm", "start"]
+CMD ["node", "appointment-service.js"]

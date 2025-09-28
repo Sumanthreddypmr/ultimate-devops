@@ -13,9 +13,9 @@ module "iam" {
 module "eks" {
   source               = "../../modules/eks"
   cluster_name         = "sumanth-new"
-  cluster_iam_role_arn = module.iam.eks_cluster_role_arn  # ✅ full ARN now
+  cluster_iam_role_arn = module.iam.eks_cluster_role_arn # ✅ full ARN now
   node_iam_role_arn    = module.iam.eks_node_role_arn
   private_subnets      = module.vpc.private_subnets
-  key_name             = ""  # Optional SSH
+  key_name             = "" # Optional SSH
 }
 
