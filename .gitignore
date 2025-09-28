@@ -1,1 +1,3 @@
 .terraform/
+**/terraform.tfvars
+deployment-secrets.jsondeployment-secrets.json
