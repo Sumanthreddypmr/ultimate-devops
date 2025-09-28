@@ -8,6 +8,12 @@ permissions:
   id-token: write
   contents: read
 
+env:
+  AWS_REGION: us-east-1
+  EKS_CLUSTER_NAME: sumanth-new
+  APPOINTMENT_IMAGE_URI: 624480629504.dkr.ecr.us-east-1.amazonaws.com/ab-images:appointment
+  PATIENT_IMAGE_URI: 624480629504.dkr.ecr.us-east-1.amazonaws.com/ab-images:patient
+
 jobs:
   build-deploy:
     runs-on: ubuntu-latest
@@ -22,46 +28,30 @@ jobs:
         uses: aws-actions/configure-aws-credentials@v4
         with:
           role-to-assume: arn:aws:iam::624480629504:role/GitHubActionsRole
-          aws-region: us-east-1
+          aws-region: ${{ env.AWS_REGION }}
 
-      # Step 3: Install jq to parse secrets
-      - name: Install jq
-        run: sudo apt-get update && sudo apt-get install -y jq
-
-      # Step 4: Fetch secrets from AWS Secrets Manager
-      - name: Fetch secrets
-        id: get_secret
-        run: |
-          SECRET_JSON=$(aws secretsmanager get-secret-value --secret-id github-actions/deployment-config --query SecretString --output text)
-          echo "AWS_ACCESS_KEY_ID=$(echo $SECRET_JSON | jq -r .AWS_ACCESS_KEY_ID)" >> $GITHUB_ENV
-          echo "AWS_SECRET_ACCESS_KEY=$(echo $SECRET_JSON | jq -r .AWS_SECRET_ACCESS_KEY)" >> $GITHUB_ENV
-          echo "AWS_REGION=$(echo $SECRET_JSON | jq -r .AWS_REGION)" >> $GITHUB_ENV
-          echo "EKS_CLUSTER_NAME=$(echo $SECRET_JSON | jq -r .EKS_CLUSTER_NAME)" >> $GITHUB_ENV
-          echo "APPOINTMENT_IMAGE_URI=$(echo $SECRET_JSON | jq -r .APPOINTMENT_IMAGE_URI)" >> $GITHUB_ENV
-          echo "PATIENT_IMAGE_URI=$(echo $SECRET_JSON | jq -r .PATIENT_IMAGE_URI)" >> $GITHUB_ENV
-
-      # Step 5: Login to Amazon ECR
+      # Step 3: Login to Amazon ECR
       - name: Login to Amazon ECR
         run: |
           aws ecr get-login-password --region $AWS_REGION | docker login --username AWS --password-stdin 624480629504.dkr.ecr.us-east-1.amazonaws.com
 
-      # Step 6: Build & push appointment service
+      # Step 4: Build & push appointment service
       - name: Build & Push Appointment
         run: |
           docker build -t appointment:${{ github.sha }} APPS/appointment
-          docker tag appointment:${{ github.sha }} $APPOINTMENT_IMAGE_URI:${{ github.sha }}
-          docker push $APPOINTMENT_IMAGE_URI:${{ github.sha }}
+          docker tag appointment:${{ github.sha }} ${{ env.APPOINTMENT_IMAGE_URI }}:${{ github.sha }}
+          docker push ${{ env.APPOINTMENT_IMAGE_URI }}:${{ github.sha }}
 
-      # Step 7: Build & push patient service
+      # Step 5: Build & push patient service
       - name: Build & Push Patient
         run: |
           docker build -t patient:${{ github.sha }} APPS/patient
-          docker tag patient:${{ github.sha }} $PATIENT_IMAGE_URI:${{ github.sha }}
-          docker push $PATIENT_IMAGE_URI:${{ github.sha }}
+          docker tag patient:${{ github.sha }} ${{ env.PATIENT_IMAGE_URI }}:${{ github.sha }}
+          docker push ${{ env.PATIENT_IMAGE_URI }}:${{ github.sha }}
 
-      # Step 8: Update kubeconfig & deploy to EKS
+      # Step 6: Configure kubectl and deploy to EKS
       - name: Deploy to EKS
         run: |
           aws eks update-kubeconfig --region $AWS_REGION --name $EKS_CLUSTER_NAME
-          kubectl set image deployment/appointment appointment=$APPOINTMENT_IMAGE_URI:${{ github.sha }} -n default
-          kubectl set image deployment/patient patient=$PATIENT_IMAGE_URI:${{ github.sha }} -n default
+          kubectl set image deployment/appointment appointment=${{ env.APPOINTMENT_IMAGE_URI }}:${{ github.sha }} -n default
+          kubectl set image deployment/patient patient=${{ env.PATIENT_IMAGE_URI }}:${{ github.sha }} -n default
