@@ -4,10 +4,6 @@ on:
   push:
     branches: [ main ]
 
-permissions:
-  id-token: write
-  contents: read
-
 env:
   AWS_REGION: us-east-1
   EKS_CLUSTER_NAME: sumanth-new
@@ -19,45 +15,34 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      # Step 1: Checkout repo
       - name: Checkout code
         uses: actions/checkout@v4
 
-      # Step 2: Configure AWS credentials via OIDC
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:
-          role-to-assume: arn:aws:iam::624480629504:role/GitHubActionsRole
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: ${{ env.AWS_REGION }}
 
-      # Step 3: Login to Amazon ECR
       - name: Login to Amazon ECR
         run: |
           aws ecr get-login-password --region ${{ env.AWS_REGION }} | docker login --username AWS --password-stdin 624480629504.dkr.ecr.us-east-1.amazonaws.com
 
-      # Step 4: Build & push appointment service
       - name: Build & Push Appointment
         run: |
           docker build -t appointment:${{ github.sha }} APPS/appointment
           docker tag appointment:${{ github.sha }} ${{ env.APPOINTMENT_IMAGE_URI }}:${{ github.sha }}
           docker push ${{ env.APPOINTMENT_IMAGE_URI }}:${{ github.sha }}
 
-      # Step 5: Build & push patient service
       - name: Build & Push Patient
         run: |
           docker build -t patient:${{ github.sha }} APPS/patient
           docker tag patient:${{ github.sha }} ${{ env.PATIENT_IMAGE_URI }}:${{ github.sha }}
           docker push ${{ env.PATIENT_IMAGE_URI }}:${{ github.sha }}
 
-      # Step 6: Configure kubectl and deploy to EKS
       - name: Deploy to EKS
         run: |
-          # Update kubeconfig using GitHub OIDC role
-          aws eks update-kubeconfig \
-            --region ${{ env.AWS_REGION }} \
-            --name ${{ env.EKS_CLUSTER_NAME }} \
-            --role-arn arn:aws:iam::624480629504:role/GitHubActionsRole
-
-          # Update deployment images with SHA tag
+          aws eks update-kubeconfig --region ${{ env.AWS_REGION }} --name ${{ env.EKS_CLUSTER_NAME }}
           kubectl set image deployment/appointment appointment=${{ env.APPOINTMENT_IMAGE_URI }}:${{ github.sha }} -n default
           kubectl set image deployment/patient patient=${{ env.PATIENT_IMAGE_URI }}:${{ github.sha }} -n default
