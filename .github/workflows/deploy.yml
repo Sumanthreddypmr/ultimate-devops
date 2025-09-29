@@ -42,7 +42,9 @@ jobs:
           docker push ${{ env.PATIENT_IMAGE_URI }}:${{ github.sha }}
 
       - name: Deploy to EKS
-  run: |
-    aws eks update-kubeconfig --region ${{ env.AWS_REGION }} --name ${{ env.EKS_CLUSTER_NAME }}
-    kubectl set image deployment/appointment-deployment appointment-container=${{ env.APPOINTMENT_IMAGE_URI }}:${{ github.sha }} -n default
-    kubectl set image deployment/patient-deployment patient-container=${{ env.PATIENT_IMAGE_URI }}:${{ github.sha }} -n default
+        run: |
+          aws eks update-kubeconfig --region ${{ env.AWS_REGION }} --name ${{ env.EKS_CLUSTER_NAME }}
+          kubectl set image deployment/appointment-deployment appointment-container=${{ env.APPOINTMENT_IMAGE_URI }}:${{ github.sha }} -n default
+          kubectl set image deployment/patient-deployment patient-container=${{ env.PATIENT_IMAGE_URI }}:${{ github.sha }} -n default
+          kubectl rollout status deployment/appointment-deployment -n default
+          kubectl rollout status deployment/patient-deployment -n default
