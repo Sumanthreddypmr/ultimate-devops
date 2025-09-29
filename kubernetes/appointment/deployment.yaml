@@ -15,8 +15,8 @@ spec:
         app: appointment
     spec:
       containers:
-        - name: appointment-container
-          image: 624480629504.dkr.ecr.us-east-1.amazonaws.com/ab-images:appointment-20250928-0406
+        - name: appointment-container624480629504.dkr.ecr.us-east-1.amazonaws.com/ab-images:appointment-20250928-0406
+          image: 
           ports:
             - containerPort: 3001
           resources:

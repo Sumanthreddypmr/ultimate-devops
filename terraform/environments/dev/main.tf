@@ -25,3 +25,17 @@ module "secrets" {
   aws_region     = var.aws_region
 }
 
+module "ecs" {
+  source = "../../modules/ecs"
+
+  cluster_name            = "ultimate-devops-ecs"
+  env                     = "dev"
+  vpc_id                  = module.vpc.vpc_id
+  public_subnets          = module.vpc.public_subnets
+  private_subnets         = module.vpc.private_subnets
+  app_sg_id               = module.vpc.app_sg_id
+  ecs_task_execution_role = module.iam.ecs_task_execution_role_arn
+
+  appointment_image       = "624480629504.dkr.ecr.us-east-1.amazonaws.com/ab-images:appointment-20250928-0406"
+  patient_image           = "624480629504.dkr.ecr.us-east-1.amazonaws.com/ab-images:patient"
+}
