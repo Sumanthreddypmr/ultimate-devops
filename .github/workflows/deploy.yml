@@ -38,15 +38,15 @@ jobs:
       # 5️⃣ Build & push Appointment image
       - name: Build & Push Appointment Image
         run: |
-          IMAGE_URI="666802050306.dkr.ecr.us-east-1.amazonaws.com/semo:appointment-${COMMIT_SHA}"
-          docker build -t $IMAGE_URI ./kubernetes/appointment
+          IMAGE_URI="${ECR_REPOSITORY}:appointment-${COMMIT_SHA}"
+          docker build -t $IMAGE_URI -f ./APPS/appointment/Dockerfile ./APPS/appointment
           docker push $IMAGE_URI
 
       # 6️⃣ Build & push Patient image
       - name: Build & Push Patient Image
         run: |
-          IMAGE_URI="666802050306.dkr.ecr.us-east-1.amazonaws.com/semo:patient-${COMMIT_SHA}"
-          docker build -t $IMAGE_URI ./kubernetes/patient
+          IMAGE_URI="${ECR_REPOSITORY}:patient-${COMMIT_SHA}"
+          docker build -t $IMAGE_URI -f ./APPS/patient/Dockerfile ./APPS/patient
           docker push $IMAGE_URI
 
       # 7️⃣ Update kubeconfig
@@ -56,13 +56,13 @@ jobs:
       # 8️⃣ Deploy Appointment
       - name: Deploy Appointment
         run: |
-          kubectl set image deployment/appointment-deployment appointment-container=666802050306.dkr.ecr.us-east-1.amazonaws.com/semo:appointment-${COMMIT_SHA}
+          kubectl set image deployment/appointment-deployment appointment-container=${ECR_REPOSITORY}:appointment-${COMMIT_SHA}
           kubectl rollout status deployment/appointment-deployment
           kubectl apply -f ./kubernetes/appointment/service.yaml
 
       # 9️⃣ Deploy Patient
       - name: Deploy Patient
         run: |
-          kubectl set image deployment/patient-deployment patient-container=666802050306.dkr.ecr.us-east-1.amazonaws.com/semo:patient-${COMMIT_SHA}
+          kubectl set image deployment/patient-deployment patient-container=${ECR_REPOSITORY}:patient-${COMMIT_SHA}
           kubectl rollout status deployment/patient-deployment
           kubectl apply -f ./kubernetes/patient/service.yaml
