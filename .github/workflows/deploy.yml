@@ -1,50 +1,68 @@
-name: CI/CD to EKS
+name: Deploy to EKS
 
 on:
   push:
-    branches: [ main ]
-
-env:
-  AWS_REGION: us-east-1
-  EKS_CLUSTER_NAME: sumanth-new
-  APPOINTMENT_IMAGE_URI: 624480629504.dkr.ecr.us-east-1.amazonaws.com/ab-images/appointment
-  PATIENT_IMAGE_URI: 624480629504.dkr.ecr.us-east-1.amazonaws.com/ab-images/patient
+    branches:
+      - main
 
 jobs:
-  build-deploy:
+  build-and-deploy:
     runs-on: ubuntu-latest
 
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
+    env:
+      AWS_REGION: us-east-1
+      ECR_REPOSITORY: 666802050306.dkr.ecr.us-east-1.amazonaws.com/semo
+      CLUSTER_NAME: sumanth-new
 
+    steps:
+      # 1️⃣ Checkout repo
+      - name: Checkout repo
+        uses: actions/checkout@v3
+
+      # 2️⃣ Configure AWS credentials
       - name: Configure AWS credentials
-        uses: aws-actions/configure-aws-credentials@v4
+        uses: aws-actions/configure-aws-credentials@v2
         with:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: ${{ env.AWS_REGION }}
 
+      # 3️⃣ Login to Amazon ECR
       - name: Login to Amazon ECR
-        run: |
-          aws ecr get-login-password --region ${{ env.AWS_REGION }} | docker login --username AWS --password-stdin 624480629504.dkr.ecr.us-east-1.amazonaws.com
+        uses: aws-actions/amazon-ecr-login@v1
 
-      - name: Build & Push Appointment
-        run: |
-          docker build -t appointment:${{ github.sha }} APPS/appointment
-          docker tag appointment:${{ github.sha }} ${{ env.APPOINTMENT_IMAGE_URI }}:${{ github.sha }}
-          docker push ${{ env.APPOINTMENT_IMAGE_URI }}:${{ github.sha }}
+      # 4️⃣ Set commit SHA for image tags
+      - name: Set commit SHA
+        run: echo "COMMIT_SHA=$(echo $GITHUB_SHA | cut -c1-7)" >> $GITHUB_ENV
 
-      - name: Build & Push Patient
+      # 5️⃣ Build & push Appointment image
+      - name: Build & Push Appointment Image
         run: |
-          docker build -t patient:${{ github.sha }} APPS/patient
-          docker tag patient:${{ github.sha }} ${{ env.PATIENT_IMAGE_URI }}:${{ github.sha }}
-          docker push ${{ env.PATIENT_IMAGE_URI }}:${{ github.sha }}
+          IMAGE_URI="666802050306.dkr.ecr.us-east-1.amazonaws.com/semo:appointment-${COMMIT_SHA}"
+          docker build -t $IMAGE_URI ./kubernetes/appointment
+          docker push $IMAGE_URI
 
-      - name: Deploy to EKS
+      # 6️⃣ Build & push Patient image
+      - name: Build & Push Patient Image
         run: |
-          aws eks update-kubeconfig --region ${{ env.AWS_REGION }} --name ${{ env.EKS_CLUSTER_NAME }}
-          kubectl set image deployment/appointment-deployment appointment-container=${{ env.APPOINTMENT_IMAGE_URI }}:${{ github.sha }} -n default
-          kubectl set image deployment/patient-deployment patient-container=${{ env.PATIENT_IMAGE_URI }}:${{ github.sha }} -n default
-          kubectl rollout status deployment/appointment-deployment -n default
-          kubectl rollout status deployment/patient-deployment -n default
+          IMAGE_URI="666802050306.dkr.ecr.us-east-1.amazonaws.com/semo:patient-${COMMIT_SHA}"
+          docker build -t $IMAGE_URI ./kubernetes/patient
+          docker push $IMAGE_URI
+
+      # 7️⃣ Update kubeconfig
+      - name: Update kubeconfig
+        run: aws eks --region $AWS_REGION update-kubeconfig --name $CLUSTER_NAME
+
+      # 8️⃣ Deploy Appointment
+      - name: Deploy Appointment
+        run: |
+          kubectl set image deployment/appointment-deployment appointment-container=666802050306.dkr.ecr.us-east-1.amazonaws.com/semo:appointment-${COMMIT_SHA}
+          kubectl rollout status deployment/appointment-deployment
+          kubectl apply -f ./kubernetes/appointment/service.yaml
+
+      # 9️⃣ Deploy Patient
+      - name: Deploy Patient
+        run: |
+          kubectl set image deployment/patient-deployment patient-container=666802050306.dkr.ecr.us-east-1.amazonaws.com/semo:patient-${COMMIT_SHA}
+          kubectl rollout status deployment/patient-deployment
+          kubectl apply -f ./kubernetes/patient/service.yaml
