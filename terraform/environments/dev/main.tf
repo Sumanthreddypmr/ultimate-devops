@@ -18,13 +18,16 @@ module "eks" {
   private_subnets      = module.vpc.private_subnets
   key_name             = "" # Optional SSH
 }
+/*
 module "secrets" {
   source         = "../../modules/secrets"
   aws_access_key = var.aws_access_key
   aws_secret_key = var.aws_secret_key
   aws_region     = var.aws_region
 }
+*/
 
+/*
 module "ecs" {
   source = "../../modules/ecs"
 
@@ -39,3 +42,4 @@ module "ecs" {
   appointment_image       = "624480629504.dkr.ecr.us-east-1.amazonaws.com/ab-images:appointment-20250928-0406"
   patient_image           = "624480629504.dkr.ecr.us-east-1.amazonaws.com/ab-images:patient"
 }
+*/
