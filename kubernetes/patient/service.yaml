@@ -10,5 +10,5 @@ spec:
     app: patient
   ports:
     - protocol: TCP
-      port: 80       # External port
-      targetPort: 3000  # Container port
+      port: 80        # External port exposed via ELB
+      targetPort: 3000 # Container port

@@ -9,6 +9,6 @@ spec:
   selector:
     app: appointment
   ports:
-    - protocol: TCP
-      port: 80       # External port
-      targetPort: 3001  # Container port
+    - port: 80        # external port (ELB will listen on 80)
+      targetPort: 3001 # forwards traffic to container port
+      protocol: TCP

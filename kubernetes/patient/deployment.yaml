@@ -16,7 +16,7 @@ spec:
     spec:
       containers:
         - name: patient-container
-          image: 624480629504.dkr.ecr.us-east-1.amazonaws.com/ab-images:patient
+          image: 666802050306.dkr.ecr.us-east-1.amazonaws.com/semo:patientpss
           ports:
             - containerPort: 3000
           resources:
